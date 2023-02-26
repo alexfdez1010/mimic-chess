@@ -15,25 +15,25 @@ PIECE_TO_CHANNEL = {
     'r': 9,
     'q': 10,
     'k': 11
-}  # correspondencias entre las piezas y los canales
+}  # map between pieces and channels
 
 CASTLE_TO_CHANNEL = {
     'K': 12,
     'Q': 13,
     'k': 14,
     'q': 15
-}  # correspondencias entre los enroques disponibles y los canales
+}  # map between castles and channels
 
-COLOUR = 16
+COLOUR = 16  # colour channel
 
-PADDED_CONVOLUTION = 17  # Posición del canal de ayuda para facilitar la convolución
+PADDED_CONVOLUTION = 17  # padded convolution channel
 
 
 def fen_to_tensor(fen: str) -> Tensor:
     """
-    Convierte una cadena en formato FEN en el tensor correspondiente para la red neuronal
-    :param fen: una cadena en formato FEN
-    :return: tensor para la red neuronal
+    Converts a FEN string to a tensor for the neural network
+    :param fen: FEN string
+    :return: tensor for the neural network
     """
     tensor = zeros(CHANNELS, ROWS, COLS)
     tensor[PADDED_CONVOLUTION] = 1

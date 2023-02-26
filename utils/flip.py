@@ -1,8 +1,8 @@
 def convert_ch(ch: chr) -> chr:
     """
-    Si es una letra la convierte en minúscula/mayúscula si es mayúscula/minúscula en caso contrario no hace nada
-    :param ch: Carácter a convertir
-    :return: Carácter convertido
+    If it is a letter, it converts it to lowercase / uppercase if it is uppercase / lowercase otherwise it does nothing
+    :param ch: Character to convert
+    :return: Converted character
     """
     if ch.isalpha():
         return ch.lower() if ch.isupper() else ch.upper()
@@ -11,9 +11,9 @@ def convert_ch(ch: chr) -> chr:
 
 def flip_fen(fen: str) -> str:
     """
-    Devuelve la cadena FEN invertida
-    :param fen: Cadena en formato FEN
-    :return: Cadena en formato FEN invertida (se intercambian las piezas de color).
+    Returns the inverted FEN string corresponding to the board (the colors are inverted)
+    :param fen: FEN string
+    :return: The inverted FEN string
     """
     board, color, castles, en_passant, _, _ = fen.split(' ')
     new_board = ''
@@ -38,9 +38,9 @@ def flip_fen(fen: str) -> str:
 
 def flip_uci(uci: str) -> str:
     """
-    Devuelve la cadena UCI invertida correspondiente al movimiento
-    :param uci: Cadena en formato UCI
-    :return: Cadena en formato UCI invertida (la misma jugada, pero las blancas son las negras y viceversa)
+    Returns the inverted UCI string corresponding to the move (the colors are inverted)
+    :param uci: UCI string
+    :return: The inverted UCI string
     """
     origin = uci[:2]
     dest = uci[2:4]

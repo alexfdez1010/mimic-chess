@@ -47,18 +47,18 @@ KNIGHT_MOVES_INVERSE = {
 
 def valid_square(row: int, col: int) -> bool:
     """
-    Comprueba si una casilla es válida
-    :param row: fila de la casilla
-    :param col: columna de la casilla
-    :return: True si la casilla es válida, False en caso contrario
+    Check whether a square is valid
+    :param row: row of the square
+    :param col: column of the square
+    :return: true if the square is valid, false otherwise
     """
     return 0 <= row < ROWS and 0 <= col < COLS
 
 
 def create_maps() -> Tuple[dict, dict]:
     """
-    Crea los diccionarios para pasar de tupla a acción y de acción a tupla
-    :return: dos diccionarios de conversion de UCI a tensor y viceversa
+    Creates the maps to convert from tuple to action and viceversa
+    :return: tuple to action map and action to tuple map
     """
     tuple_to_action_map = {}
     action_to_tuple_map = {}
@@ -99,9 +99,9 @@ TUPLE_TO_ACTION_MAP, ACTION_TO_TUPLE_MAP = create_maps()
 
 def uci_to_tuple(uci: str) -> Tuple[int, int, int]:
     """
-    Convierte una cadena en formato UCI en el tensor correspondiente para la red neuronal
-    :param uci: una cadena en formato UCI
-    :return: una tupla indicando el movimiento, la fila y la columna
+    Converts a UCI string to a tuple
+    :param uci: UCI string
+    :return: tuple with the move, row and column in that order
     """
     row_from = ord(uci[1]) - ord('1')
     col_from = ord(uci[0]) - ord('a')
@@ -146,45 +146,45 @@ def uci_to_tuple(uci: str) -> Tuple[int, int, int]:
 
 def tuple_to_action(tuple_move: Tuple[int, int, int]) -> int:
     """
-    Convierte una tupla a la acción correspondiente de la red neuronal
-    :param tuple_move: tupla a la que se ha convertido el movimiento uci
-    :return: la acción correspondiente de la red neuronal
+    Converts a tuple to the corresponding action of the neural network
+    :param tuple_move: tuple with the move, row and column in that order
+    :return: the corresponding action of the neural network
     """
     return TUPLE_TO_ACTION_MAP.get(tuple_move, -1)
 
 
 def action_to_tuple(action: int) -> Tuple[int, int, int]:
     """
-    Convierte una acción a la tupla correspondiente del movimiento uci
-    :param action: acción de la red neuronal
-    :return: la tupla correspondiente del movimiento uci
+    Converts an action of the neural network to the corresponding tuple
+    :param action: action of the neural network
+    :return: tuple with the move, row and column in that order
     """
     return ACTION_TO_TUPLE_MAP.get(action, (-1, -1, -1))
 
 
 def uci_to_action(uci: str) -> int:
     """
-    Convierte una cadena en formato UCI en la acción correspondiente de la red neuronal
-    :param uci: una cadena en formato UCI
-    :return: la acción correspondiente de la red neuronal
+    Converts a UCI string to the corresponding action of the neural network
+    :param uci: UCI string
+    :return: the corresponding action of the neural network
     """
     return tuple_to_action(uci_to_tuple(uci))
 
 
 def action_to_uci(action: int) -> str:
     """
-    Convierte una acción a la cadena en formato UCI correspondiente
-    :param action: acción de la red neuronal
-    :return: una cadena en formato UCI
+    Converts an action of the neural network to the corresponding UCI string
+    :param action: action of the neural network
+    :return: UCI string
     """
     return tuple_to_uci(action_to_tuple(action))
 
 
 def tuple_to_uci(tuple_move: Tuple[int, int, int]) -> Optional[str]:
     """
-    Convierte una tupla a la cadena correspondiente en formato UCI
-    :param tuple_move: tupla a la que se ha convertido el movimiento uci
-    :return: la cadena correspondiente en formato UCI
+    Converts a tuple to the corresponding UCI string
+    :param tuple_move: tuple with the move, row and column in that order
+    :return: UCI string
     """
     if tuple == (-1, -1, -1):
         return None
@@ -220,8 +220,8 @@ def tuple_to_uci(tuple_move: Tuple[int, int, int]) -> Optional[str]:
 
 def create_policy_matrix() -> torch.Tensor:
     """
-    Crea la matriz que permite convertir la política con 4672 acciones en una política con 1858 acciones
-    :return: la matriz que convierte la política con 4672 acciones en una política con 1858 acciones
+    Creates a matrix that converts a policy with 4672 actions to a policy with 1858 actions
+    :return: policy matrix
     """
     policy_matrix = torch.zeros((NUM_MOVES * ROWS * COLS, NUM_ACTIONS), dtype=torch.float32)
 
@@ -233,10 +233,10 @@ def create_policy_matrix() -> torch.Tensor:
 
 def add_promotion(uci_move: str, board: chess.Board) -> str:
     """
-    Añade la promoción a un movimiento si es necesario
-    :param uci_move: Movimiento en formato UCI
-    :param board: Tablero de ajedrez
-    :return: Movimiento en formato UCI corregido
+    Adds a promotion to a UCI move if it is necessary
+    :param uci_move: Move in UCI format
+    :param board: Board where the move is played
+    :return: Move in UCI format with promotion
     """
     square = chess.parse_square(uci_move[0:2])
     piece = board.piece_at(square)

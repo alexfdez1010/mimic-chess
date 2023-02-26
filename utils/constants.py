@@ -1,17 +1,11 @@
-"""Constantes comunes a los archivos de código"""
+"""Common constants used in the project"""
 
-CHANNELS = 18  # Número de canales del tensor
-ROWS, COLS = 8, 8  # Dimensiones del tablero de ajedrez
-NUM_MOVES: int = 73  # Números de movimientos posibles desde una casilla concreta
+CHANNELS = 18  # Number of channels in the input tensor
+ROWS, COLS = 8, 8  # Number of rows and columns in the chess board
+NUM_MOVES: int = 73  # Number of possible moves from a square
 
-NUM_ACTIONS: int = 1858  # Número de acciones totales
+NUM_ACTIONS: int = 1858  # Number of possible actions
 
-REWARD_ILLEGAL_MOVE: float = -1  # Recompensa por realizar una jugada ilegal
-REWARD_WIN: float = 1  # Recompensa por ganar
-REWARD_DRAW: float = 0  # Recompensa por empatar
-REWARD_LOSS: float = -1  # Recompensa por perder
+CHECKPOINTS_DIRECTORY = 'checkpoints'  # Directory where the checkpoints are saved
 
-CHECKPOINT_PTH = 'checkpoint_supervised.pth'  # Lugar donde se almacena los últimos pesos de la red neuronal
-CHECKPOINTS_DIRECTORY = 'checkpoints'  # Lugar donde se almacenan los pesos de las redes neuronales
-
-ILLEGAL_MOVE_PENALTY = -1e10  # Penalización para las jugadas ilegales
+ILLEGAL_MOVE_PENALTY = -1e10  # Penalty for illegal moves
