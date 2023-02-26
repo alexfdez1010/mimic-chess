@@ -9,3 +9,7 @@ NUM_ACTIONS: int = 1858  # Number of possible actions
 CHECKPOINTS_DIRECTORY = 'checkpoints'  # Directory where the checkpoints are saved
 
 ILLEGAL_MOVE_PENALTY = -1e10  # Penalty for illegal moves
+
+VICTORY = 0
+DRAW = 1
+LOSS = 2

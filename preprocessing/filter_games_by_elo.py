@@ -1,17 +1,28 @@
-NUM_GAMES_PER_FILE = 1000  # Maximum number of games per file
-
 from chess import pgn
 import os
+
+MINIMUM_NUMBER_OF_MOVES = 10  # Minimum number of moves to consider a game
+NUM_GAMES_PER_FILE = 10000  # Maximum number of games per file
 
 
 def game_is_valid(game: pgn.Game, min_elo: int, max_elo: int) -> bool:
     """
-    Checks whether a game is valid
+    Checks whether a game is valid (has at least 10 moves, there is time and both players have an elo)
     :param game: game to check
     :param min_elo: minimum elo to filter the games
     :param max_elo: maximum elo to filter the games
     :return: true if the game is valid, false otherwise
     """
+    temp_game = game
+
+    if game.headers['TimeControl'].find('+') == -1:
+        return False
+
+    for _ in range(MINIMUM_NUMBER_OF_MOVES):
+        if temp_game.next() is None:
+            return False
+        temp_game = temp_game.next()
+
     if game.headers['WhiteElo'] == '?' or game.headers['BlackElo'] == '?':
         return False
 
@@ -55,7 +66,7 @@ def filter_games(input_folder: str, output_folder: str, min_elo: int, max_elo: i
 
                 print(f"Game {number_of_games_read} is used: {game.headers['White']} {game.headers['Black']}")
                 number_of_games_written += 1
-                file_to_write.write(str(game))
+                file_to_write.write(f"{str(game)}\n\n")
                 game = pgn.read_game(f)
 
                 if number_of_games_written % NUM_GAMES_PER_FILE == 0:

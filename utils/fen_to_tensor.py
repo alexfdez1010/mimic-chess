@@ -1,6 +1,8 @@
+import torch
 from torch import zeros, Tensor
 
 from utils.constants import ROWS, COLS, CHANNELS
+from utils.flip import flip_fen
 
 PIECE_TO_CHANNEL = {
     'P': 0,
@@ -35,8 +37,11 @@ def fen_to_tensor(fen: str) -> Tensor:
     :param fen: FEN string
     :return: tensor for the neural network
     """
-    tensor = zeros(CHANNELS, ROWS, COLS)
+    tensor = zeros(CHANNELS, ROWS, COLS, dtype=torch.float32)
     tensor[PADDED_CONVOLUTION] = 1
+
+    if fen.split(' ')[1] == 'b':
+        fen = flip_fen(fen)
 
     board, color, castles, en_passant, _, _ = fen.split(' ')
 
