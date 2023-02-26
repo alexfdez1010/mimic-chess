@@ -1,0 +1,10 @@
+torch
+pytest
+chess
+PyYAML
+tensorboard
+matplotlib
+streamlit
+watchdog
+numpy
+pandas
