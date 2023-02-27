@@ -149,6 +149,7 @@ class HeadPolicy(Module):
         features_position, action_mask, features_times = x
         out = torch.reshape(features_times, [-1, CHANNELS_FEATURE_TIME // (ROWS*COLS), ROWS, COLS])
         out = torch.cat([features_position, out], dim=1)
+        print(out.shape)
         out = self.conv_block_policy(out)
         out = self.conv_final_policy(out)
         out = self.policy_map(out)

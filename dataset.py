@@ -85,13 +85,17 @@ def transform_data(csv_data):
     data["Time"] = csv_data[COLUMNS_TIME].values.tolist()
     data["Time"] = data["Time"].transform(time_to_tensor)
 
-    csv_data.apply(transform_flip_uci, axis=1)
+    csv_data[7] = csv_data[0].transform(lambda x: x.split(" ")[1] == "b")
+    csv_data.loc[csv_data[7], 4] = csv_data.loc[csv_data[7], 4].transform(flip_uci)
     data["Move"] = csv_data[4].transform(uci_to_action)
     data["Result"] = csv_data[5].transform(result_to_tensor)
-    data["Percentage of time used"] = csv_data[6] / (csv_data[1] + 1e-6)
+    data["Percentage of time used"] = csv_data[6] / (csv_data[1] + 1e-6)  # + 1e-6 to avoid division by 0
     data["Percentage of time used"] = data["Percentage of time used"].transform(
         lambda x: torch.tensor(x, dtype=torch.float32)
     )
+
+    for action_mask, move in zip(data["Action mask"].values.tolist(), data["Move"].values.tolist()):
+        assert action_mask[move]
 
     return data
 
@@ -119,7 +123,9 @@ def create_action_mask(fen: str) -> Tensor:
     board = chess.Board(fen)
     func = lambda x: uci_to_action(x.uci()) if is_white else uci_to_action(flip_uci(x.uci()))
 
-    action_mask[list(map(func, board.legal_moves))] = 1
+    legal_actions = list(map(func, board.legal_moves))
+
+    action_mask[legal_actions] = 1
 
     return action_mask
 
@@ -146,6 +152,10 @@ def transform_flip_uci(row: pandas.Series) -> pandas.Series:
     :return: row of the dataset with the UCI flipped if the position is from the black player
     """
     is_white = row[0].split(" ")[1] == "w"
+    if not is_white:
+        print(f"{row[4]} -> {flip_uci(row[4])}")
+
     row[4] = row[4] if is_white else flip_uci(row[4])
+    print(row[4])
 
     return row

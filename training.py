@@ -15,6 +15,7 @@ from utils.constants import CHECKPOINTS_DIRECTORY
 
 DEFAULT_CONFIG = "config_training.yml"
 
+
 # TODO: Solve the error in the policy
 
 def string_batch_information(batch_index, batches, total, total_loss, correct_policy, correct_value, time_loss):
@@ -32,7 +33,7 @@ def string_batch_information(batch_index, batches, total, total_loss, correct_po
     return f"Batch {batch_index + 1}/{batches}: \n" \
            f"Pérdida total: {total_loss / (batch_index + 1)} \n " \
            f"Precisión de la política: {100. * correct_policy / total:.2f}% \n " \
-           f"Precisión del valor: {100. * correct_value / total:.2f} \n" \
+           f"Precisión del valor: {100. * correct_value / total:.2f}% \n" \
            f"Pérdida del tiempo: {time_loss / (batch_index + 1)} \n{100 * '-'}"
 
 
@@ -159,7 +160,7 @@ def train_epoch(net: Module,
         ))
 
     return total_train_loss / len(dataloader), 100. * correct_policy / total, \
-        100. * correct_value / total, loss_time / len(dataloader)
+           100. * correct_value / total, loss_time / len(dataloader)
 
 
 def validation_epoch(net: Module,
@@ -225,7 +226,7 @@ def validation_epoch(net: Module,
             ))
 
     return total_val_loss / len(dataloader), 100. * correct_policy / total, \
-        100. * correct_value / total, loss_time / len(dataloader)
+           100. * correct_value / total, loss_time / len(dataloader)
 
 
 def train(config: Dict[str, Any], name_training: str):
@@ -319,11 +320,11 @@ def train(config: Dict[str, Any], name_training: str):
 
         writer.flush()
 
-        print("Validation finished. Saving model...")
+        print("Validation finished")
 
         if policy_accu_val > best_accu:
             print("The model has improved. Saving model...")
-            print(f"Best accuracy: {policy_accu_val}")
+            print(f"The accuracy has improved from {best_accu:.2f} to {policy_accu_val:.2f}")
             save_neural_network(name_training, epoch, net, optimizer, scheduler, policy_accu_val, gpu_available)
             best_accu = policy_accu_val
 

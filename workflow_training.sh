@@ -8,7 +8,7 @@ DATASET_FILTERED="dataset_filtered"
 DATASET="dataset"
 
 if [ -z "$folder" ] || [ -z "$name_model" ]; then
-    echo "Usage: $0 folder name_model"
+    echo "Usage: $0 folder name_model [min_elo] [max_elo]"
     exit 1
 fi
 
