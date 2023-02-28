@@ -1,3 +1,4 @@
+import os
 from typing import Tuple
 
 import torch
@@ -6,7 +7,7 @@ from torch.nn import Module, ReLU, Sequential, Conv2d, \
     BatchNorm2d, AdaptiveAvgPool2d, Sigmoid, Flatten, Linear, \
     init, Parameter
 
-from utils.constants import CHANNELS, ILLEGAL_MOVE_PENALTY, ROWS, COLS
+from utils.constants import CHANNELS, ILLEGAL_MOVE_PENALTY, ROWS, COLS, CHECKPOINTS_DIRECTORY
 from utils.uci_to_action import create_policy_matrix
 
 FINAL_CHANNELS_POLICY: int = 73  # number of channels in the last convolutional layer of the policy network
@@ -273,3 +274,35 @@ class NeuralNetworkWithSoftmax(Module):
     def load_state_dict(self, *args, **kwargs):
         """Overrides the load_state_dict method to load the state of the neural network"""
         return self.neural_network.load_state_dict(*args, **kwargs)
+
+def load_neural_network(name: str, with_softmax=False) -> Tuple[NeuralNetwork, Optional[Dict[str, Any]]]:
+    """
+    Loads the weights of the neural network
+    :param name: Name of the checkpoint
+    :param with_softmax: Indicates if the neural network with softmax is loaded
+    :return: Neural network and dictionary with the weights
+    """
+
+    net = NeuralNetwork()
+
+    path_checkpoint = f"{CHECKPOINTS_DIRECTORY}/{name}.pth"
+
+    if not os.path.exists(path_checkpoint):
+        print('There are no weights of the neural network stored from supervised learning')
+
+        if not os.path.isdir(CHECKPOINTS_DIRECTORY):
+            os.mkdir(CHECKPOINTS_DIRECTORY)
+
+        state = None
+
+    else:
+        map_location = 'cpu' if not torch.cuda.is_available() else None
+
+        print('Loading weights of the neural network from supervised learning')
+        state = torch.load(path_checkpoint, map_location=map_location)
+        net.load_state_dict(state['net'])
+
+    if with_softmax:
+        net = NeuralNetworkWithSoftmax(net)
+
+    return net, state

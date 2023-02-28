@@ -1,8 +1,7 @@
-import os
 from typing import Tuple, Dict, Any, Optional
 
 import torch
-from torch import nn, optim
+from torch import nn, optim, Tensor
 from torch.backends import cudnn
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -10,13 +9,11 @@ from torch.utils.tensorboard import SummaryWriter
 from yaml import safe_load
 
 from dataset import DatasetMimic
-from neural_network import NeuralNetwork, NeuralNetworkWithSoftmax
+from neural_network import load_neural_network
 from utils.constants import CHECKPOINTS_DIRECTORY
 
 DEFAULT_CONFIG = "config_training.yml"
 
-
-# TODO: Solve the error in the policy
 
 def string_batch_information(batch_index, batches, total, total_loss, correct_policy, correct_value, time_loss):
     """
@@ -35,39 +32,6 @@ def string_batch_information(batch_index, batches, total, total_loss, correct_po
            f"Precisión de la política: {100. * correct_policy / total:.2f}% \n " \
            f"Precisión del valor: {100. * correct_value / total:.2f}% \n" \
            f"Pérdida del tiempo: {time_loss / (batch_index + 1)} \n{100 * '-'}"
-
-
-def load_neural_network(name: str, with_softmax=False) -> Tuple[NeuralNetwork, Optional[Dict[str, Any]]]:
-    """
-    Loads the weights of the neural network
-    :param name: Name of the checkpoint
-    :param with_softmax: Indicates if the neural network with softmax is loaded
-    :return: Neural network and dictionary with the weights
-    """
-
-    net = NeuralNetwork()
-
-    path_checkpoint = f"{CHECKPOINTS_DIRECTORY}/{name}.pth"
-
-    if not os.path.exists(path_checkpoint):
-        print('There are no weights of the neural network stored from supervised learning')
-
-        if not os.path.isdir(CHECKPOINTS_DIRECTORY):
-            os.mkdir(CHECKPOINTS_DIRECTORY)
-
-        state = None
-
-    else:
-        map_location = 'cpu' if not torch.cuda.is_available() else None
-
-        print('Loading weights of the neural network from supervised learning')
-        state = torch.load(path_checkpoint, map_location=map_location)
-        net.load_state_dict(state['net'])
-
-    if with_softmax:
-        net = NeuralNetworkWithSoftmax(net)
-
-    return net, state
 
 
 def save_neural_network(name: str, epoch: int, net, optimizer, scheduler, best_accu: Optional[float], use_gpu):
@@ -120,34 +84,29 @@ def train_epoch(net: Module,
     total = 0
 
     for batch_index, (inputs, targets) in enumerate(dataloader):
-        position, action_mask, times = inputs
-        target_policy, target_value, target_time = targets
 
-        position = position.to(device)
-        action_mask = action_mask.to(device)
-        times = times.to(device)
-
-        target_policy = target_policy.to(device)
-        target_value = target_value.to(device)
-        target_time = target_time.to(device)
+        position, action_mask, times = prepare_input(device, inputs)
+        target_policy, target_value, target_time = prepare_output(device, targets)
 
         optimizer.zero_grad()
         policy, value, time = net((position, action_mask, times))
-        time = torch.squeeze(time)
 
-        loss_policy = criterion_policy(policy, target_policy)
-        loss_value = criterion_value(value, target_value)
-        loss_time = criterion_time(time, target_time)
-        loss = loss_policy + loss_value + loss_time
+        loss, loss_time = compute_loss(
+            criterion_policy, criterion_value, criterion_time,
+            target_policy, target_value, target_time,
+            policy, value, time
+        )
 
         loss.backward()
         optimizer.step()
 
-        total_train_loss += loss.item()
-        total += target_policy.size(0)
-        correct_policy += target_policy.eq(policy.max(1)[1]).sum().item()
-        correct_value += target_value.eq(value.max(1)[1]).sum().item()
-        loss_time += loss_time.item()
+        total, total_train_loss, correct_policy, correct_value, loss_time = update_metrics(
+            total, total_train_loss,
+            correct_policy, correct_value,
+            loss, loss_time,
+            target_policy, policy,
+            target_value, value
+        )
 
         print(string_batch_information(
             batch_index,
@@ -159,8 +118,111 @@ def train_epoch(net: Module,
             loss_time
         ))
 
-    return total_train_loss / len(dataloader), 100. * correct_policy / total, \
-           100. * correct_value / total, loss_time / len(dataloader)
+    mean_loss = total_train_loss / len(dataloader)
+    mean_accuracy_policy = 100. * correct_policy / total
+    mean_accuracy_value = 100. * correct_value / total
+
+    return mean_loss, mean_accuracy_policy, mean_accuracy_value, loss_time
+
+
+def update_metrics(total: int,
+                   total_train_loss: float,
+                   correct_policy: int,
+                   correct_value: int,
+                   loss: Tensor,
+                   loss_time: Tensor,
+                   target_policy: Tensor,
+                   policy: Tensor,
+                   target_value: Tensor,
+                   value: Tensor):
+    """
+    Updates the metrics
+    :param total: total number of positions analyzed
+    :param total_train_loss: total loss
+    :param correct_policy: number of moves predicted correctly
+    :param correct_value: number of results predicted correctly
+    :param loss: loss obtained in the batch
+    :param loss_time: loss of the time obtained in the batch
+    :param target_policy: moves target in the batch
+    :param policy: moves predicted in the batch
+    :param target_value: results target in the batch
+    :param value: results predicted in the batch
+    :return: updated metrics (total, total_train_loss, correct_policy, correct_value, loss_time)
+    """
+    total_train_loss += loss.item()
+    total += target_policy.size(0)
+
+    correct_policy += target_policy.eq(policy.max(1)[1]).sum().item()
+    correct_value += target_value.eq(value.max(1)[1]).sum().item()
+    loss_time += loss_time.item()
+
+    return total, total_train_loss, correct_policy, correct_value, loss_time
+
+
+def compute_loss(
+        criterion_policy: nn.CrossEntropyLoss,
+        criterion_value: nn.CrossEntropyLoss,
+        criterion_time: nn.MSELoss,
+        target_policy: Tensor,
+        target_value: Tensor,
+        target_time: Tensor,
+        policy: Tensor,
+        value: Tensor,
+        time: Tensor) -> Tuple[Tensor, Tensor]:
+    """
+    Compute the loss of the neural network
+    :param criterion_policy: loss function for the policy
+    :param criterion_value: loss function for the value
+    :param criterion_time: loss function for the time
+    :param target_policy: policy target
+    :param target_value: value target
+    :param target_time: time target
+    :param policy: policy predicted by the neural network
+    :param value: value predicted by the neural network
+    :param time: time predicted by the neural network
+    :return: a tuple with the total loss and the time loss
+    """
+
+    time = torch.squeeze(time)
+
+    loss_policy = criterion_policy(policy, target_policy)
+    loss_value = criterion_value(value, target_value)
+    loss_time = criterion_time(time, target_time)
+    loss = loss_policy + loss_value + loss_time
+
+    return loss, loss_time
+
+
+def prepare_input(device, inputs):
+    """
+    Prepare the input and output for the neural network
+    :param device: device where the neural network is trained
+    :param inputs: input of the neural network
+    :return: input of the neural network
+    """
+    position, action_mask, times = inputs
+
+    position = position.to(device)
+    action_mask = action_mask.to(device)
+    times = times.to(device)
+
+    return position, action_mask, times
+
+
+def prepare_output(device, targets):
+    """
+    Prepare the input and output for the neural network
+    :param device: device where the neural network is trained
+    :param targets: output of the neural network
+    :return: output of the neural network
+    """
+    target_policy, target_value, target_time = targets
+
+    target_policy = target_policy.to(device)
+    target_value = target_value.to(device)
+    target_time = target_time.to(device)
+
+    return target_policy, target_value, target_time
 
 
 def validation_epoch(net: Module,
@@ -190,30 +252,24 @@ def validation_epoch(net: Module,
 
     with torch.no_grad():
         for batch_index, (inputs, targets) in enumerate(dataloader):
-            position, action_mask, times = inputs
-            target_policy, target_value, target_time = targets
-
-            position = position.to(device)
-            action_mask = action_mask.to(device)
-            times = times.to(device)
-
-            target_policy = target_policy.to(device)
-            target_value = target_value.to(device)
-            target_time = target_time.to(device)
+            position, action_mask, times = prepare_input(device, inputs)
+            target_policy, target_value, target_time = prepare_output(device, targets)
 
             policy, value, time = net((position, action_mask, times))
-            time = torch.squeeze(time)
 
-            loss_policy = criterion_policy(policy, target_policy)
-            loss_value = criterion_value(value, target_value)
-            loss_time = criterion_time(time, target_time)
-            loss = loss_policy + loss_value + loss_time
+            loss, loss_time = compute_loss(
+                criterion_policy, criterion_value, criterion_time,
+                target_policy, target_value, target_time,
+                policy, value, time
+            )
 
-            total_val_loss += loss.item()
-            total += target_policy.size(0)
-            correct_policy += target_policy.eq(policy.max(1)[1]).sum().item()
-            correct_value += target_value.eq(value.max(1)[1]).sum().item()
-            loss_time += loss_time.item()
+            total, total_val_loss, correct_policy, correct_value, loss_time = update_metrics(
+                total, total_val_loss,
+                correct_policy, correct_value,
+                loss, loss_time,
+                target_policy, policy,
+                target_value, value
+            )
 
             print(string_batch_information(
                 batch_index,
@@ -225,8 +281,11 @@ def validation_epoch(net: Module,
                 loss_time
             ))
 
-    return total_val_loss / len(dataloader), 100. * correct_policy / total, \
-           100. * correct_value / total, loss_time / len(dataloader)
+    mean_loss = total_val_loss / len(dataloader)
+    mean_accuracy_policy = 100. * correct_policy / total
+    mean_accuracy_value = 100. * correct_value / total
+
+    return mean_loss, mean_accuracy_policy, mean_accuracy_value, loss_time
 
 
 def train(config: Dict[str, Any], name_training: str):

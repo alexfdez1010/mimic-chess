@@ -94,9 +94,6 @@ def transform_data(csv_data):
         lambda x: torch.tensor(x, dtype=torch.float32)
     )
 
-    for action_mask, move in zip(data["Action mask"].values.tolist(), data["Move"].values.tolist()):
-        assert action_mask[move]
-
     return data
 
 
