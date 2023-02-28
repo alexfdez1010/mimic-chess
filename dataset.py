@@ -53,18 +53,18 @@ class DatasetMimic(Dataset):
 
     def __len__(self) -> int:
         """
-        Sobreescribe el método __len__ de la clase Dataset
+        Overrides the __len__ method of the Dataset class
 
-        :return: el número de elementos del dataset
+        :return: the number of elements in the dataset
         """
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
         """
-        Sobreescribe el método __getitem__ de la clase Dataset
+        Overwrites the __getitem__ method of the Dataset class
 
-        :param idx: índice del elemento a obtener
-        :return: el elemento del dataset, siempre desde la perspectiva de las blancas
+        :param idx: index of the element to get
+        :return: a tuple with the input and the output of the neural network
         """
         position = self.data.iloc[idx]["Position"]
         action_mask = self.data.iloc[idx]["Action mask"]
@@ -139,20 +139,3 @@ def time_to_tensor(times: list) -> Tensor:
     times[2] = times[2] / MAX_INCREMENT
 
     return torch.tensor(times, dtype=torch.float32)
-
-
-def transform_flip_uci(row: pandas.Series) -> pandas.Series:
-    """
-    Flip a UCI if the position is from the black player
-
-    :param row: row of the dataset
-    :return: row of the dataset with the UCI flipped if the position is from the black player
-    """
-    is_white = row[0].split(" ")[1] == "w"
-    if not is_white:
-        print(f"{row[4]} -> {flip_uci(row[4])}")
-
-    row[4] = row[4] if is_white else flip_uci(row[4])
-    print(row[4])
-
-    return row

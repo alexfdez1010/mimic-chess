@@ -1,5 +1,5 @@
 import os
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any
 
 import torch
 from torch import squeeze, Tensor, softmax
@@ -137,7 +137,7 @@ class HeadPolicy(Module):
     def __init__(self):
         super(HeadPolicy, self).__init__()
         self.conv_block_policy = ConvBlock(
-            RESIDUAL_CHANNELS + CHANNELS_FEATURE_TIME // (ROWS*COLS), RESIDUAL_CHANNELS, 3
+            RESIDUAL_CHANNELS + CHANNELS_FEATURE_TIME // (ROWS * COLS), RESIDUAL_CHANNELS, 3
         )
         self.conv_final_policy = Conv2d(RESIDUAL_CHANNELS, FINAL_CHANNELS_POLICY, 1)
 
@@ -148,9 +148,8 @@ class HeadPolicy(Module):
 
     def forward(self, x: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         features_position, action_mask, features_times = x
-        out = torch.reshape(features_times, [-1, CHANNELS_FEATURE_TIME // (ROWS*COLS), ROWS, COLS])
+        out = torch.reshape(features_times, [-1, CHANNELS_FEATURE_TIME // (ROWS * COLS), ROWS, COLS])
         out = torch.cat([features_position, out], dim=1)
-        print(out.shape)
         out = self.conv_block_policy(out)
         out = self.conv_final_policy(out)
         out = self.policy_map(out)
@@ -274,6 +273,7 @@ class NeuralNetworkWithSoftmax(Module):
     def load_state_dict(self, *args, **kwargs):
         """Overrides the load_state_dict method to load the state of the neural network"""
         return self.neural_network.load_state_dict(*args, **kwargs)
+
 
 def load_neural_network(name: str, with_softmax=False) -> Tuple[NeuralNetwork, Optional[Dict[str, Any]]]:
     """

@@ -195,7 +195,7 @@ def compute_loss(
 
 def prepare_input(device, inputs):
     """
-    Prepare the input and output for the neural network
+    Prepare the input for the neural network
     :param device: device where the neural network is trained
     :param inputs: input of the neural network
     :return: input of the neural network
@@ -211,7 +211,7 @@ def prepare_input(device, inputs):
 
 def prepare_output(device, targets):
     """
-    Prepare the input and output for the neural network
+    Prepare the output for the neural network
     :param device: device where the neural network is trained
     :param targets: output of the neural network
     :return: output of the neural network
@@ -232,15 +232,15 @@ def validation_epoch(net: Module,
                      criterion_time: nn.MSELoss,
                      device: torch.device) -> Tuple[float, float, float, float]:
     """
-    Validación de un epoch de la red neuronal
+    Validation epoch of the neural network
 
-    :param net: red neuronal a evaluar
-    :param dataloader: dataloader con el dataset de validación
-    :param criterion_policy: función de pérdida para la política
-    :param criterion_value: función de pérdida para el valor
-    :param criterion_time: función de pérdida para el tiempo
-    :param device: dispositivo en el que ejecutar la validación
-    :return: tupla con la pérdida total, la precisión de la política y pérdida del valor
+    :param net: neural network
+    :param dataloader: dataloader with the validation data
+    :param criterion_policy: loss function for the policy
+    :param criterion_value: loss function for the value
+    :param criterion_time: loss function for the time
+    :param device: device where the neural network is trained
+    :return: a tuple with the total loss, the accuracy of the policy, the accuracy of the value and the time loss
     """
     net.eval()
 
