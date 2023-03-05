@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, Any
 
 import torch
@@ -7,8 +8,10 @@ from torch.nn import Module, ReLU, Sequential, Conv2d, \
     BatchNorm2d, AdaptiveAvgPool2d, Sigmoid, Flatten, Linear, \
     init, Parameter
 
-from utils.constants import CHANNELS, ILLEGAL_MOVE_PENALTY, ROWS, COLS, CHECKPOINTS_DIRECTORY
-from utils.uci_to_action import create_policy_matrix
+from utils.constants import CHANNELS, ILLEGAL_MOVE_PENALTY, ROWS, COLS, CHECKPOINTS_DIRECTORY, DRAW, VICTORY, LOSS
+from utils.flip import flip_uci
+from utils.to_tensor import fen_to_tensor, create_action_mask, time_to_tensor, time_string_to_seconds, seconds_to_time
+from utils.uci_to_action import create_policy_matrix, action_to_uci
 
 FINAL_CHANNELS_POLICY: int = 73  # number of channels in the last convolutional layer of the policy network
 FINAL_CHANNELS_VALUE: int = 3  # number of channels in the last convolutional layer of the value network
@@ -275,12 +278,103 @@ class NeuralNetworkWithSoftmax(Module):
         return self.neural_network.load_state_dict(*args, **kwargs)
 
 
+@dataclass(init=False)
+class PositionInformation:
+    moves: Dict[str, float]  # Moves and their probabilities
+    white_wining_probability: float  # Probability of winning for white
+    black_wining_probability: float  # Probability of winning for black
+    draw_probability: float  # Probability of draw
+    time: str  # Time expected to calculate the position
+
+    THRESHOLD_PROBABILITY = 0.01  # Threshold to consider
+
+    def __init__(self, moves: Tensor, value: Tensor, time_self: str, time_used: float, white_turn: bool):
+        """
+        Creates an instance of the class PositionInformation
+        :param moves: Moves and their probabilities
+        :param value: Value of the position
+        :param time_self: Time for the player to move (hh:mm:ss)
+        :param time_used: Percentage of time used to calculate the position respect to time_self
+        :param white_turn: True if it is white's turn, False if it is black's turn
+        """
+        self.moves = self.get_moves(moves, white_turn)
+        self.draw_probability = value[DRAW].item()
+
+        if white_turn:
+            self.white_wining_probability = value[VICTORY].item()
+            self.black_wining_probability = value[LOSS].item()
+        else:
+            self.white_wining_probability = value[LOSS].item()
+            self.black_wining_probability = value[VICTORY].item()
+
+        seconds = int(time_string_to_seconds(time_self) * time_used)
+        self.time = seconds_to_time(seconds)
+
+    @staticmethod
+    def get_moves(moves: Tensor, white_turn: bool) -> Dict[str, float]:
+        """
+        Returns the moves and their probabilities
+        :param moves: Moves and their probabilities
+        :param white_turn: True if it is white's turn, False if it is black's turn
+        :return: Moves and their probabilities
+        """
+        actions = torch.where(moves > PositionInformation.THRESHOLD_PROBABILITY)[0].tolist()
+        func = lambda x: action_to_uci(x) if white_turn else flip_uci(action_to_uci(x))
+
+        return {func(action): moves[action].item() for action in actions}
+
+
+class NeuralNetworkProduction:
+
+    def __init__(self, name: str):
+        """
+        Creates an instance of the class NeuralNetworkProduction to use in production
+        includes all logic to take a position and return the moves, value and time
+        :param name: Name of the model to use
+        """
+        self.neural_network = load_neural_network(name, with_softmax=True)[0]
+
+    def predict(self, fen: str,
+                time_self: str,
+                time_opponent: str,
+                increment: int) -> PositionInformation:
+        """
+        Predicts the best move and the value of the position
+        :param fen: FEN of the position
+        :param time_self: Time of the player in (hh:mm:ss) format
+        :param time_opponent: Time of the opponent in (hh:mm:ss) format
+        :param increment: Increment of the time in seconds
+        :return: Moves with their probabilities, value of the position and time expected to make a move
+        """
+        white_turn = fen.split(" ")[1] == "w"
+
+        position = fen_to_tensor(fen)
+        action_mask = create_action_mask(fen)
+        times = time_to_tensor([
+            time_string_to_seconds(time_self),
+            time_string_to_seconds(time_opponent),
+            increment
+        ])
+
+        position = torch.unsqueeze(position, 0)
+        action_mask = torch.unsqueeze(action_mask, 0)
+        times = torch.unsqueeze(times, 0)
+
+        policy, value, time = self.neural_network((position, action_mask, times))
+
+        policy = torch.squeeze(policy)
+        value = torch.squeeze(value)
+        time = torch.squeeze(time)
+
+        return PositionInformation(policy, value, time_self, time.item(), white_turn)
+
+
 def load_neural_network(name: str, with_softmax=False) -> Tuple[NeuralNetwork, Optional[Dict[str, Any]]]:
     """
     Loads the weights of the neural network
     :param name: Name of the checkpoint
     :param with_softmax: Indicates if the neural network with softmax is loaded
-    :return: Neural network and dictionary with the weights
+    :return: Neural network and dictionary with the state of the neural network
     """
 
     net = NeuralNetwork()

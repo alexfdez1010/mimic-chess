@@ -4,6 +4,7 @@ from random import random
 from chess import pgn
 
 from utils.constants import VICTORY, DRAW, LOSS
+from utils.to_tensor import time_string_to_seconds
 
 POSITIONS_PER_FILE = 50000  # Maximum number of positions per file
 
@@ -12,9 +13,6 @@ RESULT_TO_INT = {
     "1/2-1/2": DRAW,
     "0-1": LOSS
 }
-
-SECONDS_IN_MINUTE = 60
-SECONDS_IN_HOUR = 3600
 
 
 def get_time_string(comment: str) -> str:
@@ -25,16 +23,6 @@ def get_time_string(comment: str) -> str:
     """
     clk_index = comment.find("%clk")
     return comment[clk_index + 5:clk_index + 12]
-
-
-def time_string_to_seconds(time: str) -> int:
-    """
-    Converts a time in string format to seconds
-    :param time: time in string format
-    :return: time in seconds
-    """
-    hours, minutes, seconds = list(map(int, time.split(":")))
-    return hours * SECONDS_IN_HOUR + minutes * SECONDS_IN_MINUTE + seconds
 
 
 def create_csv_entry(game: pgn.Game, time_self: int, time_rival: int, increment: int, result: int,

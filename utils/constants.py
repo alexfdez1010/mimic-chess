@@ -10,6 +10,9 @@ CHECKPOINTS_DIRECTORY = 'checkpoints'  # Directory where the checkpoints are sav
 
 ILLEGAL_MOVE_PENALTY = -1e10  # Penalty for illegal moves
 
-VICTORY = 0
-DRAW = 1
-LOSS = 2
+VICTORY = 0 # Index of the victory result
+DRAW = 1 # Index of the draw result
+LOSS = 2 # Index of the loss result
+
+SECONDS_IN_MINUTE = 60 # Number of seconds in a minute
+SECONDS_IN_HOUR = 3600 # Number of seconds in an hour

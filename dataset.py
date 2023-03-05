@@ -8,16 +8,12 @@ from pandas import read_csv, DataFrame
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from utils.constants import NUM_ACTIONS
-from utils.fen_to_tensor import fen_to_tensor
+from utils.to_tensor import fen_to_tensor, result_to_tensor, create_action_mask, time_to_tensor
 from utils.flip import flip_uci
 from utils.uci_to_action import uci_to_action
 
 COLUMNS = ["Position", "Action mask", "Time", "Move", "Result", "Percentage of time used"]
 COLUMNS_TIME = [1, 2, 3]
-
-MAX_TIME = 7200
-MAX_INCREMENT = 60
 
 
 class DatasetMimic(Dataset):
@@ -95,47 +91,3 @@ def transform_data(csv_data):
     )
 
     return data
-
-
-def result_to_tensor(result: int) -> Tensor:
-    """
-    Transform a result into a tensor
-
-    :param result: result
-    :return: tensor with the result
-    """
-    return torch.tensor(result, dtype=torch.long)
-
-
-def create_action_mask(fen: str) -> Tensor:
-    """
-    Creates an action mask from a FEN
-
-    :param fen: FEN of the board
-    :return: tensor with the action mask
-    """
-    action_mask = torch.zeros(NUM_ACTIONS, dtype=torch.bool)
-    is_white = fen.split(" ")[1] == "w"
-
-    board = chess.Board(fen)
-    func = lambda x: uci_to_action(x.uci()) if is_white else uci_to_action(flip_uci(x.uci()))
-
-    legal_actions = list(map(func, board.legal_moves))
-
-    action_mask[legal_actions] = 1
-
-    return action_mask
-
-
-def time_to_tensor(times: list) -> Tensor:
-    """
-    Transforms a list of times into a tensor
-
-    :param times: list of times
-    :return: tensor with the times
-    """
-    times[0] = times[0] / MAX_TIME
-    times[1] = times[1] / MAX_TIME
-    times[2] = times[2] / MAX_INCREMENT
-
-    return torch.tensor(times, dtype=torch.float32)
