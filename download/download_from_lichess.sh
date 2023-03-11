@@ -3,9 +3,9 @@
 DATASET_FILTERED="database_filtered"
 DOWNLOAD_FOLDER="lichess_database"
 
-INITIAL_MONTH=12
+INITIAL_MONTH=1
 INITIAL_YEAR=2019
-FINAL_MONTH=1
+FINAL_MONTH=12
 FINAL_YEAR=2019
 
 download_and_filter() {
@@ -45,8 +45,8 @@ max_elo=$2
 
 echo "Downloading games from $INITIAL_MONTH/$INITIAL_YEAR to $FINAL_MONTH/$FINAL_YEAR from lichess"
 
-if [ ! -d "$DOWNLOAD_FOLDER" ]; then
-    mkdir "$DOWNLOAD_FOLDER"
+if [ ! -d download/"$DOWNLOAD_FOLDER" ]; then
+    mkdir download/"$DOWNLOAD_FOLDER"
 fi
 
 cd download/"$DOWNLOAD_FOLDER" || exit
