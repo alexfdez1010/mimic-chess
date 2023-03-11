@@ -23,7 +23,7 @@ download_and_filter() {
 
   wget https://database.lichess.org/standard/"$file_compressed"
 
-  pzstd -d "$file_compressed"
+  zstd -d "$file_compressed"
   rm "$file_compressed"
 
   echo "Starting filtering games with elo between $min_elo and $max_elo from $file"
