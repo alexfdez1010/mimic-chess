@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-import chess
+from pandarallel import pandarallel
 import pandas
 import torch
 from pandas import read_csv, DataFrame
@@ -37,6 +37,7 @@ class DatasetMimic(Dataset):
         :param csv_folder: folder that contains the csv files
         """
         self.data = DataFrame(columns=COLUMNS)
+        pandarallel.initialize(verbose=1)
 
         for file in os.listdir(csv_folder):
 
@@ -74,19 +75,20 @@ class DatasetMimic(Dataset):
 
 
 def transform_data(csv_data):
+
     data = DataFrame(columns=COLUMNS)
 
-    data["Position"] = csv_data[0].transform(fen_to_tensor)
-    data["Action mask"] = csv_data[0].transform(create_action_mask)
+    data["Position"] = csv_data[0].parallel_apply(fen_to_tensor)
+    data["Action mask"] = csv_data[0].parallel_apply(create_action_mask)
     data["Time"] = csv_data[COLUMNS_TIME].values.tolist()
-    data["Time"] = data["Time"].transform(time_to_tensor)
+    data["Time"] = data["Time"].parallel_apply(time_to_tensor)
 
-    csv_data[7] = csv_data[0].transform(lambda x: x.split(" ")[1] == "b")
-    csv_data.loc[csv_data[7], 4] = csv_data.loc[csv_data[7], 4].transform(flip_uci)
-    data["Move"] = csv_data[4].transform(uci_to_action)
-    data["Result"] = csv_data[5].transform(result_to_tensor)
+    csv_data[7] = csv_data[0].parallel_apply(lambda x: x.split(" ")[1] == "b")
+    csv_data.loc[csv_data[7], 4] = csv_data.loc[csv_data[7], 4].parallel_apply(flip_uci)
+    data["Move"] = csv_data[4].parallel_apply(uci_to_action)
+    data["Result"] = csv_data[5].parallel_apply(result_to_tensor)
     data["Percentage of time used"] = csv_data[6] / (csv_data[1] + 1e-6)  # + 1e-6 to avoid division by 0
-    data["Percentage of time used"] = data["Percentage of time used"].transform(
+    data["Percentage of time used"] = data["Percentage of time used"].parallel_apply(
         lambda x: torch.tensor(x, dtype=torch.float32)
     )
 

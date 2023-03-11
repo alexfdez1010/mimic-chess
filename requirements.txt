@@ -8,3 +8,4 @@ streamlit
 watchdog
 numpy
 pandas
+pandarallel

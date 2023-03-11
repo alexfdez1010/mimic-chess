@@ -6,14 +6,15 @@ from chess import pgn
 from utils.constants import VICTORY, DRAW, LOSS
 from utils.to_tensor import time_string_to_seconds
 
-POSITIONS_PER_FILE = 50000  # Maximum number of positions per file
+import multiprocessing as mp
+
+POSITIONS_PER_FILE = 1000000  # Maximum number of positions per file
 
 RESULT_TO_INT = {
     "1-0": VICTORY,
     "1/2-1/2": DRAW,
     "0-1": LOSS
 }
-
 
 def get_time_string(comment: str) -> str:
     """
@@ -67,6 +68,64 @@ def get_times(game: pgn.Game, increment: int) -> (int, int, int):
     return time_self, time_rival, time_used
 
 
+def process_file(input_folder: str,
+                 filename: str,
+                 output_folder_training: str,
+                 output_folder_validation: str,
+                 split: float):
+    """
+    Processes a file with games in pgn format
+    :param input_folder: folder that contains the games in pgn format
+    :param filename: name of the file
+    :param output_folder_training: folder that will contain the positions for training (in csv format)
+    :param output_folder_validation: folder that will contain the positions for validation (in csv format)
+    :param split: percentage of games to use for training between 0 and 1
+    """
+    written_to_training = 0
+    written_to_validation = 0
+    num_games = 0
+
+    file_to_write_training = open(f"{output_folder_training}/{filename}_0.csv", "w")
+    file_to_write_validation = open(f"{output_folder_validation}/{filename}_0.csv", "w")
+
+    with open(os.path.join(input_folder, filename), 'r') as file:
+
+        while game := pgn.read_game(file):
+
+            num_games += 1
+
+            to_training = random() < split
+            file_to_write = file_to_write_training if to_training else file_to_write_validation
+
+            print(f"Processing game {num_games}: {game.headers['White']} vs {game.headers['Black']} "
+                  f"to {'training' if to_training else 'validation'}")
+
+            increment = int(game.headers["TimeControl"].split("+")[-1])
+            result = RESULT_TO_INT[game.headers["Result"]]
+
+            while game.next():
+                written_to_training += 1 if to_training else 0
+                written_to_validation += 1 if not to_training else 0
+
+                time_self, time_rival, time_used = get_times(game, increment)
+                file_to_write.write(create_csv_entry(game, time_self, time_rival, increment, result, time_used))
+
+                game = game.next()
+                result = 2 - result
+
+                if to_training and written_to_training % POSITIONS_PER_FILE == 0:
+                    file_to_write_training.close()
+                    fn = f"{output_folder_training}/{filename}_{written_to_training // POSITIONS_PER_FILE}.csv"
+                    file_to_write_training = open(fn, "w")
+                    file_to_write = file_to_write_training
+
+                if not to_training and written_to_validation % POSITIONS_PER_FILE == 0:
+                    file_to_write_validation.close()
+                    fn = f"{output_folder_validation}/{filename}_{written_to_validation // POSITIONS_PER_FILE}.csv"
+                    file_to_write_validation = open(fn, "w")
+                    file_to_write = file_to_write_validation
+
+
 def games_to_positions(input_folder: str,
                        output_folder_training: str,
                        output_folder_validation: str,
@@ -84,67 +143,44 @@ def games_to_positions(input_folder: str,
     if not os.path.exists(output_folder_validation):
         os.makedirs(output_folder_validation)
 
-    file_to_write_training = open(f"{output_folder_training}/positions_0.csv", "w")
-    file_to_write_validation = open(f"{output_folder_validation}/positions_0.csv", "w")
+    files = os.listdir(input_folder)
 
-    written_to_training = 0
-    written_to_validation = 0
-    num_games = 0
+    number_of_processes = min(mp.cpu_count(), len(files))
 
-    for filename in os.listdir(input_folder):
+    with mp.Pool(number_of_processes) as pool:
 
-        if not filename.endswith('.pgn'):
-            continue
+        results = []
 
-        print(f"Processing file {filename}...")
+        for filename in files:
 
-        with open(os.path.join(input_folder, filename), 'r') as f:
+            if not filename.endswith('.pgn'):
+                continue
 
-            game = pgn.read_game(f)
+            print(f"Processing file {filename}...")
 
-            while game:
+            result = pool.apply_async(
+                process_file,
+                args=(
+                    input_folder,
+                    os.path.splitext(filename)[0],
+                    output_folder_training,
+                    output_folder_validation,
+                    split
+                )
+            )
 
-                num_games += 1
+            results.append(result)
 
-                to_training = random() < split
-                file_to_write = file_to_write_training if to_training else file_to_write_validation
-
-                print(f"Processing game {num_games}: {game.headers['White']} vs {game.headers['Black']} "
-                      f"to {'training' if to_training else 'validation'}")
-
-                increment = int(game.headers["TimeControl"].split("+")[-1])
-                result = RESULT_TO_INT[game.headers["Result"]]
-
-                while game.next():
-                    written_to_training += 1 if to_training else 0
-                    written_to_validation += 1 if not to_training else 0
-
-                    time_self, time_rival, time_used = get_times(game, increment)
-                    file_to_write.write(create_csv_entry(game, time_self, time_rival, increment, result, time_used))
-
-                    game = game.next()
-                    result = 2 - result
-
-                    if to_training and written_to_training % POSITIONS_PER_FILE == 0:
-                        file_to_write_training.close()
-                        fn = f"{output_folder_training}/positions_{written_to_training // POSITIONS_PER_FILE}.csv"
-                        file_to_write_training = open(fn, "w")
-                        file_to_write = file_to_write_training
-
-                    if not to_training and written_to_validation % POSITIONS_PER_FILE == 0:
-                        file_to_write_validation.close()
-                        fn = f"{output_folder_validation}/positions_{written_to_validation // POSITIONS_PER_FILE}.csv"
-                        file_to_write_validation = open(fn, "w")
-                        file_to_write = file_to_write_validation
-
-                game = pgn.read_game(f)
+        for result in results:
+            result.wait()
 
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Converts a folder of games in pgn format to a folder of positions in csv format')
+        description='Converts a folder of games in pgn format to a folder of positions in csv format'
+    )
     parser.add_argument('input_folder', type=str, help='Folder that contains the games in pgn format')
     parser.add_argument('output_folder', type=str, help='Folder that will contain the positions')
     parser.add_argument('--split', type=float, default=0.95, help='Percentage of games to use for training')
