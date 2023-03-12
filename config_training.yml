@@ -1,6 +1,5 @@
 lr: 0.01
 batch: 1024
-epochs: 200
-model_path: "checkpoint_supervised.pth"
+epochs: 50
 dataset_training_folder: "dataset/training"
 dataset_validation_folder: "dataset/validation"
