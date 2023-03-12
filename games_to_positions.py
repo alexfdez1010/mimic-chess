@@ -6,9 +6,7 @@ from chess import pgn
 from utils.constants import VICTORY, DRAW, LOSS
 from utils.time_utils import time_string_to_seconds
 
-import multiprocessing as mp
-
-POSITIONS_PER_FILE = 1000000  # Maximum number of positions per file
+POSITIONS_PER_FILE = 500000  # Maximum number of positions per file
 
 RESULT_TO_INT = {
     "1-0": VICTORY,
@@ -69,27 +67,25 @@ def get_times(game: pgn.Game, increment: int) -> (int, int, int):
     return time_self, time_rival, time_used
 
 
-def process_file(input_folder: str,
-                 filename: str,
-                 output_folder_training: str,
-                 output_folder_validation: str,
-                 split: float):
+def games_to_positions(input_file: str,
+                       output_folder_training: str,
+                       output_folder_validation: str,
+                       split: float = 0.95):
     """
-    Processes a file with games in pgn format
-    :param input_folder: folder that contains the games in pgn format
-    :param filename: name of the file
+    Converts a folder of games in pgn format to a folder of positions in pickle format
+    :param input_file: file that contains the games in pgn format
     :param output_folder_training: folder that will contain the positions for training (in csv format)
     :param output_folder_validation: folder that will contain the positions for validation (in csv format)
-    :param split: percentage of games to use for training between 0 and 1
+    :param split: percentage of games to use for training
     """
     written_to_training = 0
     written_to_validation = 0
     num_games = 0
 
-    file_to_write_training = open(f"{output_folder_training}/{filename}_0.csv", "w")
-    file_to_write_validation = open(f"{output_folder_validation}/{filename}_0.csv", "w")
+    file_to_write_training = open(f"{output_folder_training}/{input_file}_0.csv", "w")
+    file_to_write_validation = open(f"{output_folder_validation}/{input_file}_0.csv", "w")
 
-    with open(os.path.join(input_folder, filename), 'r') as file:
+    with open(input_file, 'r') as file:
 
         while game := pgn.read_game(file):
 
@@ -98,7 +94,8 @@ def process_file(input_folder: str,
             to_training = random() < split
             file_to_write = file_to_write_training if to_training else file_to_write_validation
 
-            print(f"Processing game {num_games}: {game.headers['White']} vs {game.headers['Black']} "
+            print(f"{input_file} - Processing game {num_games}: "
+                  f"{game.headers['White']} vs {game.headers['Black']} "
                   f"to {'training' if to_training else 'validation'}")
 
             increment = int(game.headers["TimeControl"].split("+")[-1])
@@ -116,64 +113,17 @@ def process_file(input_folder: str,
 
                 if to_training and written_to_training % POSITIONS_PER_FILE == 0:
                     file_to_write_training.close()
-                    fn = f"{output_folder_training}/{filename}_{written_to_training // POSITIONS_PER_FILE}.csv"
+                    fn = f"{input_file} - {output_folder_training}/" \
+                         f"{input_file}_{written_to_training // POSITIONS_PER_FILE}.csv"
                     file_to_write_training = open(fn, "w")
                     file_to_write = file_to_write_training
 
                 if not to_training and written_to_validation % POSITIONS_PER_FILE == 0:
                     file_to_write_validation.close()
-                    fn = f"{output_folder_validation}/{filename}_{written_to_validation // POSITIONS_PER_FILE}.csv"
+                    fn = f"{input_file} - {output_folder_validation}/" \
+                         f"{input_file}_{written_to_validation // POSITIONS_PER_FILE}.csv"
                     file_to_write_validation = open(fn, "w")
                     file_to_write = file_to_write_validation
-
-
-def games_to_positions(input_folder: str,
-                       output_folder_training: str,
-                       output_folder_validation: str,
-                       split: float = 0.95):
-    """
-    Converts a folder of games in pgn format to a folder of positions in pickle format
-    :param input_folder: folder that contains the games in pgn format
-    :param output_folder_training: folder that will contain the positions for training (in csv format)
-    :param output_folder_validation: folder that will contain the positions for validation (in csv format)
-    :param split: percentage of games to use for training
-    """
-    if not os.path.exists(output_folder_training):
-        os.makedirs(output_folder_training)
-
-    if not os.path.exists(output_folder_validation):
-        os.makedirs(output_folder_validation)
-
-    files = os.listdir(input_folder)
-
-    number_of_processes = min(mp.cpu_count(), len(files))
-
-    with mp.Pool(number_of_processes) as pool:
-
-        results = []
-
-        for filename in files:
-
-            if not filename.endswith('.pgn'):
-                continue
-
-            print(f"Processing file {filename}...")
-
-            result = pool.apply_async(
-                process_file,
-                args=(
-                    input_folder,
-                    os.path.splitext(filename)[0],
-                    output_folder_training,
-                    output_folder_validation,
-                    split
-                )
-            )
-
-            results.append(result)
-
-        for result in results:
-            result.wait()
 
 
 def main():
@@ -182,7 +132,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Converts a folder of games in pgn format to a folder of positions in csv format'
     )
-    parser.add_argument('input_folder', type=str, help='Folder that contains the games in pgn format')
+    parser.add_argument('input_file', type=str, help='File that contains the games in pgn format')
     parser.add_argument('output_folder', type=str, help='Folder that will contain the positions')
     parser.add_argument('--split', type=float, default=0.95, help='Percentage of games to use for training')
 
@@ -191,7 +141,7 @@ def main():
     training_folder = os.path.join(args.output_folder, "training")
     validation_folder = os.path.join(args.output_folder, "validation")
 
-    games_to_positions(args.input_folder, training_folder, validation_folder, args.split)
+    games_to_positions(args.input_file, training_folder, validation_folder, args.split)
 
 
 if __name__ == '__main__':
