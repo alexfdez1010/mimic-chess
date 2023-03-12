@@ -4,7 +4,7 @@ from random import random
 from chess import pgn
 
 from utils.constants import VICTORY, DRAW, LOSS
-from utils.to_tensor import time_string_to_seconds
+from utils.time_utils import time_string_to_seconds
 
 import multiprocessing as mp
 
@@ -15,6 +15,7 @@ RESULT_TO_INT = {
     "1/2-1/2": DRAW,
     "0-1": LOSS
 }
+
 
 def get_time_string(comment: str) -> str:
     """

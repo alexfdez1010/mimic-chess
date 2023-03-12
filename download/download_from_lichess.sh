@@ -23,10 +23,14 @@ download_and_filter() {
   file="lichess_db_standard_rated_$year-$month.pgn"
   file_compressed="$file.zst"
 
-  wget https://database.lichess.org/standard/"$file_compressed" --no-check-certificate
-
-  zstd -d "$file_compressed"
-  rm "$file_compressed"
+  if [ -f "$file" ]; then
+      echo "File $file already exists. Skipping download"
+  else
+      echo "No file $file found. Downloading from lichess"
+      wget https://database.lichess.org/standard/"$file_compressed" --no-check-certificate
+      zstd -d "$file_compressed"
+      rm "$file_compressed"
+  fi
 
   echo "Starting filtering games with elo between $min_elo and $max_elo from $file"
 

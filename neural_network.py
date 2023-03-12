@@ -10,7 +10,8 @@ from torch.nn import Module, ReLU, Sequential, Conv2d, \
 
 from utils.constants import CHANNELS, ILLEGAL_MOVE_PENALTY, ROWS, COLS, CHECKPOINTS_DIRECTORY, DRAW, VICTORY, LOSS
 from utils.flip import flip_uci
-from utils.to_tensor import fen_to_tensor, create_action_mask, time_to_tensor, time_string_to_seconds, seconds_to_time
+from utils.time_utils import time_string_to_seconds, seconds_to_time
+from utils.to_tensor import fen_to_tensor, create_action_mask, time_to_tensor
 from utils.uci_to_action import create_policy_matrix, action_to_uci
 
 FINAL_CHANNELS_POLICY: int = 73  # number of channels in the last convolutional layer of the policy network

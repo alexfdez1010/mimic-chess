@@ -1,5 +1,5 @@
 from utils.constants import CHANNELS, ROWS, COLS
-from utils.fen_to_tensor import fen_to_tensor, PIECE_TO_CHANNEL, CASTLE_TO_CHANNEL, COLOUR, PADDED_CONVOLUTION
+from utils.to_tensor import fen_to_tensor, PIECE_TO_CHANNEL, CASTLE_TO_CHANNEL, COLOUR, PADDED_CONVOLUTION
 
 
 def test_pieces():

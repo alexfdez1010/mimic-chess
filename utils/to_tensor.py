@@ -2,7 +2,7 @@ import chess
 import torch
 from torch import zeros, Tensor
 
-from utils.constants import ROWS, COLS, CHANNELS, NUM_ACTIONS, SECONDS_IN_HOUR, SECONDS_IN_MINUTE
+from utils.constants import ROWS, COLS, CHANNELS, NUM_ACTIONS
 from utils.flip import flip_fen, flip_uci
 from utils.uci_to_action import uci_to_action
 
@@ -121,26 +121,3 @@ def time_to_tensor(times: list) -> Tensor:
     times[2] = times[2] / MAX_INCREMENT
 
     return torch.tensor(times, dtype=torch.float32)
-
-
-def time_string_to_seconds(time: str) -> int:
-    """
-    Converts a time in string format to seconds
-    :param time: time in string format
-    :return: time in seconds
-    """
-    hours, minutes, seconds = list(map(int, time.split(":")))
-    return hours * SECONDS_IN_HOUR + minutes * SECONDS_IN_MINUTE + seconds
-
-
-def seconds_to_time(seconds: int) -> str:
-    """
-    Converts seconds to a time in string format
-    :param seconds: time in seconds
-    :return: time in string format
-    """
-    hours = seconds // SECONDS_IN_HOUR
-    minutes = (seconds % SECONDS_IN_HOUR) // SECONDS_IN_MINUTE
-    seconds = seconds % SECONDS_IN_MINUTE
-
-    return f"{hours}:{minutes}:{seconds}"
