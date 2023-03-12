@@ -82,8 +82,10 @@ def games_to_positions(input_file: str,
     written_to_validation = 0
     num_games = 0
 
-    file_to_write_training = open(f"{output_folder_training}/{input_file}_0.csv", "w")
-    file_to_write_validation = open(f"{output_folder_validation}/{input_file}_0.csv", "w")
+    base_filename = os.path.basename(input_file).split(".")[0]
+
+    file_to_write_training = open(f"{output_folder_training}/{base_filename}_0.csv", "w")
+    file_to_write_validation = open(f"{output_folder_validation}/{base_filename}_0.csv", "w")
 
     with open(input_file, 'r') as file:
 
@@ -113,15 +115,15 @@ def games_to_positions(input_file: str,
 
                 if to_training and written_to_training % POSITIONS_PER_FILE == 0:
                     file_to_write_training.close()
-                    fn = f"{input_file} - {output_folder_training}/" \
-                         f"{input_file}_{written_to_training // POSITIONS_PER_FILE}.csv"
+                    fn = f"{base_filename} - {output_folder_training}/" \
+                         f"{base_filename}_{written_to_training // POSITIONS_PER_FILE}.csv"
                     file_to_write_training = open(fn, "w")
                     file_to_write = file_to_write_training
 
                 if not to_training and written_to_validation % POSITIONS_PER_FILE == 0:
                     file_to_write_validation.close()
-                    fn = f"{input_file} - {output_folder_validation}/" \
-                         f"{input_file}_{written_to_validation // POSITIONS_PER_FILE}.csv"
+                    fn = f"{base_filename} - {output_folder_validation}/" \
+                         f"{base_filename}_{written_to_validation // POSITIONS_PER_FILE}.csv"
                     file_to_write_validation = open(fn, "w")
                     file_to_write = file_to_write_validation
 
