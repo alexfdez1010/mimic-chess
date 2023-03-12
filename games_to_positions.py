@@ -115,15 +115,13 @@ def games_to_positions(input_file: str,
 
                 if to_training and written_to_training % POSITIONS_PER_FILE == 0:
                     file_to_write_training.close()
-                    fn = f"{base_filename} - {output_folder_training}/" \
-                         f"{base_filename}_{written_to_training // POSITIONS_PER_FILE}.csv"
+                    fn = f"{output_folder_training}/{base_filename}_{written_to_training // POSITIONS_PER_FILE}.csv"
                     file_to_write_training = open(fn, "w")
                     file_to_write = file_to_write_training
 
                 if not to_training and written_to_validation % POSITIONS_PER_FILE == 0:
                     file_to_write_validation.close()
-                    fn = f"{base_filename} - {output_folder_validation}/" \
-                         f"{base_filename}_{written_to_validation // POSITIONS_PER_FILE}.csv"
+                    fn = f"{output_folder_validation}/{base_filename}_{written_to_validation // POSITIONS_PER_FILE}.csv"
                     file_to_write_validation = open(fn, "w")
                     file_to_write = file_to_write_validation
 
