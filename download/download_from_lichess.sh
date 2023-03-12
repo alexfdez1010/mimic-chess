@@ -3,7 +3,7 @@
 DATASET_FILTERED="database_filtered"
 DOWNLOAD_FOLDER="lichess_database"
 
-INITIAL_MONTH=1
+INITIAL_MONTH=6
 INITIAL_YEAR=2019
 FINAL_MONTH=12
 FINAL_YEAR=2019
@@ -30,7 +30,7 @@ download_and_filter() {
 
   echo "Starting filtering games with elo between $min_elo and $max_elo from $file"
 
-  python ../filter_games_by_elo.py "$file" "../$DATASET_FILTERED" --min-elo "$min_elo" --max-elo "$max_elo" && rm "$file"
+  python -u ../filter_games_by_elo.py "$file" "../$DATASET_FILTERED" --min-elo "$min_elo" --max-elo "$max_elo" && rm "$file"
 
   echo "Finished filtering games with elo between $min_elo and $max_elo from $file"
 }
