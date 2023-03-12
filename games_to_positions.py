@@ -96,7 +96,7 @@ def games_to_positions(input_file: str,
             to_training = random() < split
             file_to_write = file_to_write_training if to_training else file_to_write_validation
 
-            print(f"{input_file} - Processing game {num_games}: "
+            print(f"{base_filename} - Processing game {num_games}: "
                   f"{game.headers['White']} vs {game.headers['Black']} "
                   f"to {'training' if to_training else 'validation'}")
 
