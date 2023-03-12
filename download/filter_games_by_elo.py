@@ -61,12 +61,12 @@ def write_games(input_filename: str, f: TextIO, offsets: List[int], output_folde
         game = pgn.read_game(f)
 
         if not filter_by_minimum_number_of_moves(game):
-            print(
-                f"{input_filename} - Game {number_of_game} has less than {MINIMUM_NUMBER_OF_MOVES} moves thus it is not valid")
+            print(f"{input_filename} - Game {number_of_game} has less than "
+                  f"{MINIMUM_NUMBER_OF_MOVES} moves, thus it is not valid")
             continue
 
-        print(
-            f"{input_filename} - Game {number_of_game} is written: {game.headers.get('White')} {game.headers.get('Black')}")
+        print(f"{input_filename} - Game {number_of_game} is written: "
+              f"{game.headers.get('White')} {game.headers.get('Black')}")
 
         if number_of_game % NUM_GAMES_PER_FILE == 0:
             file_to_write.close()
@@ -126,7 +126,7 @@ def filter_games(input_file: str, output_folder: str, min_elo: int, max_elo: int
 
     with open(input_file, 'r') as f:
 
-        offsets = get_offsets(f, max_elo, min_elo)
+        offsets = get_offsets(f, input_file, max_elo, min_elo)
         filename = os.path.basename(input_file)
         filename = os.path.splitext(filename)[0]
         write_games(filename, f, offsets, output_folder)
