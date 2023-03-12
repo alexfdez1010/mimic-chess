@@ -8,6 +8,8 @@ INITIAL_YEAR=2019
 FINAL_MONTH=12
 FINAL_YEAR=2019
 
+WAITING_CONSTANT=5
+
 download_and_filter() {
   year=$1
   month=$2
@@ -28,9 +30,7 @@ download_and_filter() {
 
   echo "Starting filtering games with elo between $min_elo and $max_elo from $file"
 
-  cd ..
-
-  python filter_games_by_elo.py "$file" "$DATASET_FILTERED" --min-elo "$min_elo" --max-elo "$max_elo" && rm "$file"
+  python ../filter_games_by_elo.py "$file" "../$DATASET_FILTERED" --min-elo "$min_elo" --max-elo "$max_elo" && rm "$file"
 
   echo "Finished filtering games with elo between $min_elo and $max_elo from $file"
 }
@@ -55,6 +55,7 @@ for year in $(seq "$INITIAL_YEAR" "$FINAL_YEAR"); do
     for month in $(seq "$INITIAL_MONTH" "$FINAL_MONTH"); do
       download_and_filter "$year" "$month" "$min_elo" "$max_elo" &
       echo "Downloading and filtering games from $month/$year..."
+      sleep "$WAITING_CONSTANT" # To avoid errors of too many requests
     done
 done
 

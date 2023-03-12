@@ -61,15 +61,17 @@ def write_games(input_filename: str, f: TextIO, offsets: List[int], output_folde
         game = pgn.read_game(f)
 
         if not filter_by_minimum_number_of_moves(game):
-            print(f"Game {number_of_game} has less than {MINIMUM_NUMBER_OF_MOVES} moves thus it is not valid")
+            print(
+                f"{input_filename} - Game {number_of_game} has less than {MINIMUM_NUMBER_OF_MOVES} moves thus it is not valid")
             continue
 
-        print(f"Game {number_of_game} is written: {game.headers.get('White')} {game.headers.get('Black')}")
+        print(
+            f"{input_filename} - Game {number_of_game} is written: {game.headers.get('White')} {game.headers.get('Black')}")
 
         if number_of_game % NUM_GAMES_PER_FILE == 0:
             file_to_write.close()
             name_file = f"{output_folder}/{input_filename}_{number_of_game // NUM_GAMES_PER_FILE}.pgn"
-            print(f"Changing to file {name_file} after writing {NUM_GAMES_PER_FILE} games")
+            print(f"{input_filename} - Changing to file {name_file} after writing {NUM_GAMES_PER_FILE} games")
             file_to_write = open(name_file, "w")
 
         file_to_write.write(f"{game}\n\n")
@@ -78,10 +80,11 @@ def write_games(input_filename: str, f: TextIO, offsets: List[int], output_folde
         file_to_write.close()
 
 
-def get_offsets(file: TextIO, max_elo: int, min_elo: int):
+def get_offsets(file: TextIO, input_filename: str, max_elo: int, min_elo: int):
     """
     Gets the offsets of the games that are valid
     :param file: file to read
+    :param input_filename: name of the file to read
     :param max_elo: maximum elo to filter the games
     :param min_elo: minimum elo to filter the games
     :return: offsets of the games that are valid
@@ -97,7 +100,9 @@ def get_offsets(file: TextIO, max_elo: int, min_elo: int):
         if not game_is_valid_headers(headers, min_elo, max_elo):
             continue
 
-        print(f"Game {number_of_games_read} is accepted: {headers.get('White')} {headers.get('Black')}")
+        print(f"{input_filename} - Game {number_of_games_read} is accepted: "
+              f"{headers.get('White')} {headers.get('Black')}")
+
         offsets.append(offset)
 
     return offsets
