@@ -26,5 +26,5 @@ fi
 
 for file in "$input_folder"/*.pgn; do
     echo "Starting converting games from $file to positions"
-    python -u games_positions.py "$file" "$output_folder" --split "$SPLIT" &
+    python -u games_to_positions.py "$file" "$output_folder" --split "$SPLIT" &
 done
